@@ -145,20 +145,7 @@ export class AppComponent implements OnInit{
     this.editedObject = null; 
     this.editedField = 'name';
     this.editedValue = '';
-    ELEMENT_DATA.forEach(x=>{
-      console.log(x.name)
-    })
-    console.log('********')
-    this.copyElementData.splice(0, ELEMENT_DATA.length, ...JSON.parse(JSON.stringify(originalData)));
-    this.copyElementData.forEach(x=>{
-      console.log(x.name)
-    })
-    console.log('********')
-    ELEMENT_DATA.forEach(x=>{
-      console.log(x.name)
-    })
-
-    console.log('---------')
+    
     this.dataSource = new MatTableDataSource(this.copyElementData);
   }
 
