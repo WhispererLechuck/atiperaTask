@@ -11,6 +11,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { PopupComponent } from './popup/popup/popup.component';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import {RxState} from '@rx-angular/state';
+
 
 type PeriodicElementKeys = keyof PeriodicElement;
 export interface DialogData {
@@ -82,12 +84,13 @@ const originalData = JSON.parse(JSON.stringify(ELEMENT_DATA));
 </div>
   `
   ,
-  styleUrl: './app.component.css'
+  styleUrl: './app.component.css',
+  providers: [RxState]
 })
 export class AppComponent implements OnInit{
   readonly popupDialog = inject(MatDialog);
   copyElementData: PeriodicElement[] = JSON.parse(JSON.stringify(ELEMENT_DATA));
-  dataSource:any;
+  dataSource = new MatTableDataSource<PeriodicElement>();
   headerRows = ['position', 'name', 'weight', 'symbol'];
   emptyFieldFlag: boolean = false;
   editedObject: any = null; 
@@ -99,6 +102,16 @@ export class AppComponent implements OnInit{
   loadTimer: any;
   loadLimit: number = 1000;
 
+  constructor(private state: RxState<{ data: PeriodicElement[] }>) {
+    this.state.set({ data: ELEMENT_DATA });
+    /*
+    This subscribe is the way I found to detect the changes in the variable dataSource, I am sorry if this does not meet your expectations. 
+    */
+    this.state.select('data').subscribe(data => {
+      this.dataSource.data = data;
+    });
+  }
+
 
   edit(item:PeriodicElement, head: PeriodicElementKeys) {
     this.editedObject = item;
@@ -109,11 +122,22 @@ export class AppComponent implements OnInit{
 
   openDialog() {
     const dialogRef = this.popupDialog.open(PopupComponent, { data: {item: this.editedValue, type: this.editedField}});
+    /*
+    Based in the Material Angular documentation, the only way to receive data from the Mat-dialog is using this subscribe.
+    */
     dialogRef.afterClosed().subscribe(x =>{
       if(x!=undefined){
-        this.editedObject[this.editedField] = x;
+        this.updateElement(x);
       }
     })
+  }
+
+  updateElement(inputValue: any){
+    this.state.set({
+      data: this.state.get().data.map(el =>
+        el.position === this.editedObject.position ? { ...el, [this.editedField]: inputValue } : el
+      ),
+    });
   }
 
   applyFilter(event: Event) {
@@ -146,19 +170,14 @@ export class AppComponent implements OnInit{
     this.editedField = 'name';
     this.editedValue = '';
     
-    this.dataSource = new MatTableDataSource(this.copyElementData);
+    this.state.set({ data: ELEMENT_DATA });
   }
 
   title = 'atiperaTask';
   ngOnInit(): void {
     
-      // Hacer una copia profunda de ELEMENT_DATA para asegurarte que los cambios no modifiquen el original
     this.loadContent();
   }
-    /*
-  The only way I found to use const to define the data  would be using an external file and then import the data to this fine, however to keep it inmutable I will still have to keep using readonly, so decided to move in this way and use the minimum amount of files possible.
-  */
-
 
     
 }
